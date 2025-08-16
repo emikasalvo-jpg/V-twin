@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V-Twin Engine Sound Simulation</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #222;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        .chart {
+            position: relative;
+            width: 600px;
+            height: 200px;
+            border: 2px solid #fff;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .cylinder {
+            position: absolute;
+            height: 20px;
+            width: 40px;
+            background-color: #0f0;
+        }
+        .slider {
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chart" id="chart"></div>
+    <input type="range" id="rpmSlider" class="slider" min="0" max="6000" value="2000" step="100">
+    <label for="rpmSlider">RPM: <span id="rpmValue">2000</span></label>
+
+    <script>
+        const chart = document.getElementById('chart');
+        const rpmSlider = document.getElementById('rpmSlider');
+        const rpmValue = document.getElementById('rpmValue');
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let engineSound = audioCtx.createOscillator();
+        let gainNode = audioCtx.createGain();
+        engineSound.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        engineSound.type = 'sine';
+
+        let phase1 = 0; // Phase for Cylinder 1
+        let phase2 = Math.PI; // Phase for Cylinder 2 (180 degrees out of phase)
+
+        function drawCylinder(phase, color, id) {
+            const cylinder = document.createElement('div');
+            cylinder.className = 'cylinder';
+            cylinder.style.backgroundColor = color;
+            chart.appendChild(cylinder);
+            cylinder.style.left = `${(chart.clientWidth / 2) + Math.sin(phase) * 100}px`;
+            cylinder.style.top = `${(chart.clientHeight / 2) + 20 * (id - 1)}px`;
+        }
+
+        function animate() {
+            chart.innerHTML = ''; // Clear previous frames
+            drawCylinder(phase1, '#0f0', 1);
+            drawCylinder(phase2, '#00f', 2);
+            
+            // Update phases based on current RPM
+            const currentRPM = rpmSlider.value;
+            const frequency = currentRPM / 60; // Convert RPM to Hz
+            phase1 += (2 * Math.PI * frequency) / 60; // Change phase for Cylinder 1
+            phase2 += (2 * Math.PI * frequency) / 60; // Change phase for Cylinder 2
+
+            requestAnimationFrame(animate);
+        }
+
+        function playEngineSound() {
+            const currentRPM = rpmSlider.value;
+            const frequency = 100 + (currentRPM / 6000) * 1000; // Map RPM to pitch frequency
+a
+            engineSound.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime); // Set a moderate volume
+            
+            // Start the oscillator if it's not already started
+            if (engineSound.state === 'suspended') {
+                engineSound.start();
+            }
+        }
+
+        rpmSlider.addEventListener('input', function() {
+            rpmValue.textContent = this.value; // Update RPM display
+            playEngineSound();
+        });
+
+        animate();
+    </script>
+</body>
+</html>
